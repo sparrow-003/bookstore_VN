@@ -21,6 +21,15 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params
     const data = await request.json()
+
+    if (data.isBanned !== undefined) {
+      if (data.isBanned) {
+        db.banUser(id)
+      } else {
+        db.unbanUser(id)
+      }
+    }
+
     const user = db.updateUser(id, data)
 
     if (!user) {

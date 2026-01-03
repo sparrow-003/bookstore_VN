@@ -1,31 +1,56 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { useStats } from "@/hooks/use-stats"
-import { useBooks } from "@/hooks/use-books"
-import { useOrders } from "@/hooks/use-orders"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { StatCard } from "@/components/ui/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Book, ShoppingCart, DollarSign, AlertTriangle, TrendingUp } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from "recharts"
+import { TrendingUp, Calendar } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function SellerDashboard() {
   const { user, isAuthenticated, isSeller, isLoading: authLoading } = useAuth()
   const router = useRouter()
-
-  const { stats, isLoading: statsLoading } = useStats("seller", user?.id)
-  const { books, isLoading: booksLoading } = useBooks({ sellerId: user?.id })
-  const { orders, isLoading: ordersLoading } = useOrders({ sellerId: user?.id })
+  const [stats, setStats] = useState(null)
+  const [timeFrame, setTimeFrame] = useState("month")
+  const [chartData, setChartData] = useState([])
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isSeller)) {
       router.push("/login?redirect=/seller")
     }
   }, [authLoading, isAuthenticated, isSeller, router])
+
+  useEffect(() => {
+    if (isSeller && user?.id) {
+      fetchStats()
+    }
+  }, [isSeller, user?.id, timeFrame])
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`/api/seller/stats?userId=${user.id}&timeFrame=${timeFrame}`)
+      const data = await res.json()
+      setStats(data.stats)
+      setChartData(data.chartData || [])
+    } catch (error) {
+      console.error("Failed to fetch stats:", error)
+    }
+  }
 
   if (authLoading || !isSeller) {
     return (
@@ -35,116 +60,118 @@ export default function SellerDashboard() {
     )
   }
 
-  const lowStockBooks = books.filter((b) => b.quantity < 10)
-  const recentOrders = orders.slice(0, 5)
-
   return (
     <div className="flex min-h-screen bg-muted/30">
       <DashboardSidebar type="seller" />
       <div className="flex-1 flex flex-col">
         <DashboardHeader title="Seller Dashboard" />
         <main className="flex-1 p-6">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold">Welcome back, {user?.name}</h2>
-            <p className="text-muted-foreground">Here's an overview of your bookstore</p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Welcome back, {user?.name}</h2>
+              <p className="text-muted-foreground">Your bookstore performance and analytics</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Select value={timeFrame} onValueChange={setTimeFrame}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="year">This Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
+          {/* Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            {statsLoading ? (
-              Array(4)
-                .fill(0)
-                .map((_, i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <Skeleton className="h-4 w-24 mb-2" />
-                      <Skeleton className="h-8 w-16" />
-                    </CardContent>
-                  </Card>
-                ))
-            ) : (
-              <>
-                <StatCard title="My Books" value={stats?.totalBooks || books.length} icon={Book} />
-                <StatCard title="Total Orders" value={stats?.totalOrders || orders.length} icon={ShoppingCart} />
-                <StatCard title="Total Revenue" value={`$${(stats?.totalRevenue || 0).toFixed(2)}`} icon={DollarSign} />
-                <StatCard title="Low Stock" value={stats?.lowStockBooks || lowStockBooks.length} icon={AlertTriangle} />
-              </>
-            )}
+            <StatCard
+              title="Total Revenue"
+              value={`$${(stats?.totalRevenue || 0).toFixed(2)}`}
+              icon={TrendingUp}
+              trend={stats?.revenueTrend}
+            />
+            <StatCard title="Total Orders" value={stats?.totalOrders || 0} icon={TrendingUp} />
+            <StatCard title="Total Books Listed" value={stats?.totalBooks || 0} icon={TrendingUp} />
+            <StatCard title="Average Rating" value={`${(stats?.avgRating || 0).toFixed(1)}/5`} icon={TrendingUp} />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
+          {/* Revenue Chart */}
+          {chartData.length > 0 && (
+            <Card className="mb-8">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Recent Orders
-                </CardTitle>
+                <CardTitle>Revenue Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                {ordersLoading ? (
-                  <div className="space-y-3">
-                    {Array(3)
-                      .fill(0)
-                      .map((_, i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
-                      ))}
-                  </div>
-                ) : recentOrders.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No orders yet</p>
-                ) : (
-                  <div className="space-y-4">
-                    {recentOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{order.id}</p>
-                          <p className="text-xs text-muted-foreground">{order.items.length} items</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-sm">${order.total.toFixed(2)}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{order.status}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="revenue" stroke="#3b82f6" name="Revenue ($)" />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
+          )}
 
-            <Card>
+          {/* Sales by Category */}
+          {chartData.length > 0 && (
+            <Card className="mb-8">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                  Low Stock Alert
-                </CardTitle>
+                <CardTitle>Sales by Category</CardTitle>
               </CardHeader>
               <CardContent>
-                {booksLoading ? (
-                  <div className="space-y-3">
-                    {Array(3)
-                      .fill(0)
-                      .map((_, i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
-                      ))}
-                  </div>
-                ) : lowStockBooks.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">All books are well stocked</p>
-                ) : (
-                  <div className="space-y-3">
-                    {lowStockBooks.slice(0, 5).map((book) => (
-                      <div key={book.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{book.title}</p>
-                          <p className="text-xs text-muted-foreground">{book.author}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-destructive">{book.quantity} left</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="sales" fill="#3b82f6" name="Sales" />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
-          </div>
+          )}
+
+          {/* Book Performance */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Book Performance Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Total Books</p>
+                    <p className="text-sm text-muted-foreground">All listed books</p>
+                  </div>
+                  <p className="text-2xl font-bold">{stats?.totalBooks || 0}</p>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Physical Books</p>
+                    <p className="text-sm text-muted-foreground">Hardcover & Paperback</p>
+                  </div>
+                  <p className="text-2xl font-bold">{stats?.physicalBooks || 0}</p>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Digital Books</p>
+                    <p className="text-sm text-muted-foreground">PDF Downloads</p>
+                  </div>
+                  <p className="text-2xl font-bold">{stats?.digitalBooks || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </main>
       </div>
     </div>

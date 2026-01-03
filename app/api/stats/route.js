@@ -1,21 +1,42 @@
 import { NextResponse } from "next/server"
-import { StatsController } from "@/server/controllers/stats.controller"
+import { db } from "@/server/db"
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const sellerId = searchParams.get("sellerId")
     const type = searchParams.get("type")
 
-    let stats
-    if (type === "seller" && sellerId) {
-      stats = StatsController.getSellerStats(sellerId)
-    } else {
-      stats = StatsController.getAdminStats()
-    }
+    // Get base stats from database
+    const stats = db.getStats()
 
-    return NextResponse.json({ stats })
+    // Enhance with book type breakdown
+    const books = db.getBooks()
+    const physicalBooks = books.filter((b) => b.bookType === "physical").length
+    const digitalBooks = books.filter((b) => b.bookType === "digital").length
+
+    // Get seller count
+    const users = db.getUsers()
+    const sellerCount = users.filter((u) => u.role === "seller").length
+    const userCount = users.filter((u) => u.role === "user").length
+    const bannedCount = users.filter((u) => u.isBanned).length
+
+    // Get seller applications
+    const applications = db.getSellerApplications()
+    const pendingApps = applications.filter((a) => a.status === "pending").length
+
+    return NextResponse.json({
+      stats: {
+        ...stats,
+        physicalBooks,
+        digitalBooks,
+        sellerCount,
+        userCount,
+        bannedCount,
+        pendingApplications: pendingApps,
+      },
+    })
   } catch (error) {
+    console.error("Stats error:", error)
     return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 })
   }
 }

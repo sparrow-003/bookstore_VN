@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { UserController } from "@/server/controllers/user.controller"
+import { db } from "@/server/db"
 
 export async function GET(request) {
   try {
@@ -8,12 +8,28 @@ export async function GET(request) {
 
     let users
     if (role) {
-      users = UserController.getByRole(role)
+      users = db.getUsers().filter((u) => u.role === role)
     } else {
-      users = UserController.getAll()
+      users = db.getUsers()
     }
 
-    return NextResponse.json({ users })
+    // Return safe user objects (without passwords)
+    const safeUsers = users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      avatar: u.avatar,
+      phone: u.phone,
+      address: u.address,
+      businessName: u.businessName,
+      rating: u.rating,
+      createdAt: u.createdAt,
+      isActive: u.isActive,
+      isBanned: u.isBanned,
+    }))
+
+    return NextResponse.json({ users: safeUsers })
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })
   }

@@ -6,38 +6,34 @@
 let users = [
   {
     id: "1",
-    email: "admin@bookstore.com",
-    password: "admin123",
-    name: "Admin User",
+    email: "alex@007",
+    password: "alex@007",
+    name: "Alex Admin",
     role: "admin",
     avatar: null,
     phone: "+1 234 567 890",
     address: "123 Admin Street, NY",
     createdAt: "2024-01-01T00:00:00Z",
+    isActive: true,
+    isBanned: false,
   },
   {
     id: "2",
-    email: "organizer@bookstore.com",
-    password: "organizer123",
-    name: "Book Organizer",
-    role: "organizer",
-    avatar: null,
-    phone: "+1 234 567 891",
-    address: "456 Organizer Ave, CA",
-    createdAt: "2024-01-15T00:00:00Z",
-  },
-  {
-    id: "3",
-    email: "user@example.com",
-    password: "user123",
-    name: "John Doe",
+    email: "demo@user.com",
+    password: "demo123",
+    name: "Demo User",
     role: "user",
     avatar: null,
-    phone: "+1 234 567 892",
-    address: "789 User Lane, TX",
-    createdAt: "2024-02-01T00:00:00Z",
+    phone: "+1 111 111 111",
+    address: "456 User Ave, CA",
+    createdAt: "2024-01-15T00:00:00Z",
+    isActive: true,
+    isBanned: false,
   },
 ]
+
+// ==================== SELLER APPLICATIONS ====================
+const sellerApplications = []
 
 // ==================== AUTHORS ====================
 const authors = [
@@ -92,6 +88,9 @@ let books = [
     publisher: "Scribner",
     publishedDate: "1925-04-10",
     createdAt: "2024-01-01T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "2",
@@ -116,6 +115,9 @@ let books = [
     publisher: "Harper",
     publishedDate: "2014-02-10",
     createdAt: "2024-01-02T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "3",
@@ -140,6 +142,9 @@ let books = [
     publisher: "Bantam",
     publishedDate: "1988-04-01",
     createdAt: "2024-01-03T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "4",
@@ -164,6 +169,9 @@ let books = [
     publisher: "Penguin Classics",
     publishedDate: "1813-01-28",
     createdAt: "2024-01-04T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "5",
@@ -188,6 +196,9 @@ let books = [
     publisher: "Scholastic",
     publishedDate: "1997-06-26",
     createdAt: "2024-01-05T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "6",
@@ -211,6 +222,9 @@ let books = [
     publisher: "Vintage Crime",
     publishedDate: "2005-08-01",
     createdAt: "2024-01-06T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "7",
@@ -234,6 +248,9 @@ let books = [
     publisher: "Simon & Schuster",
     publishedDate: "2011-10-24",
     createdAt: "2024-01-07T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "8",
@@ -257,6 +274,9 @@ let books = [
     publisher: "W. W. Norton",
     publishedDate: "1997-03-01",
     createdAt: "2024-01-08T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "9",
@@ -280,6 +300,9 @@ let books = [
     publisher: "Signet Classics",
     publishedDate: "1949-06-08",
     createdAt: "2024-01-09T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "10",
@@ -303,6 +326,9 @@ let books = [
     publisher: "Ballantine Books",
     publishedDate: "1980-09-28",
     createdAt: "2024-01-10T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "11",
@@ -326,6 +352,9 @@ let books = [
     publisher: "Grand Central",
     publishedDate: "1996-10-01",
     createdAt: "2024-01-11T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
   {
     id: "12",
@@ -349,6 +378,9 @@ let books = [
     publisher: "HarperCollins",
     publishedDate: "1952-10-15",
     createdAt: "2024-01-12T00:00:00Z",
+    bookType: "physical",
+    pdf: null,
+    listingQuestions: null,
   },
 ]
 
@@ -366,9 +398,9 @@ let inventory = books.map((book) => ({
 let orders = [
   {
     id: "ORD-001",
-    userId: "3",
-    userName: "John Doe",
-    userEmail: "user@example.com",
+    userId: "2",
+    userName: "Demo User",
+    userEmail: "demo@user.com",
     items: [
       { bookId: "1", title: "The Great Gatsby", quantity: 1, price: 14.99 },
       { bookId: "5", title: "Harry Potter and the Sorcerer's Stone", quantity: 2, price: 15.99 },
@@ -380,11 +412,11 @@ let orders = [
     status: "delivered",
     paymentMethod: "credit_card",
     shippingAddress: {
-      name: "John Doe",
-      address: "123 Main Street",
-      city: "New York",
-      state: "NY",
-      zip: "10001",
+      name: "Demo User",
+      address: "456 User Ave",
+      city: "Los Angeles",
+      state: "CA",
+      zip: "90001",
       country: "USA",
     },
     createdAt: "2024-02-10T10:00:00Z",
@@ -392,9 +424,9 @@ let orders = [
   },
   {
     id: "ORD-002",
-    userId: "3",
-    userName: "John Doe",
-    userEmail: "user@example.com",
+    userId: "2",
+    userName: "Demo User",
+    userEmail: "demo@user.com",
     items: [{ bookId: "2", title: "Sapiens", quantity: 1, price: 18.99 }],
     subtotal: 18.99,
     shipping: 4.99,
@@ -403,11 +435,11 @@ let orders = [
     status: "shipped",
     paymentMethod: "paypal",
     shippingAddress: {
-      name: "John Doe",
-      address: "123 Main Street",
-      city: "New York",
-      state: "NY",
-      zip: "10001",
+      name: "Demo User",
+      address: "456 User Ave",
+      city: "Los Angeles",
+      state: "CA",
+      zip: "90001",
       country: "USA",
     },
     createdAt: "2024-03-01T09:15:00Z",
@@ -420,8 +452,8 @@ let reviews = [
   {
     id: "1",
     bookId: "1",
-    userId: "3",
-    userName: "John Doe",
+    userId: "2",
+    userName: "Demo User",
     rating: 5,
     title: "Timeless Classic!",
     comment: "A timeless classic that never gets old! Fitzgerald's prose is beautiful and the story is haunting.",
@@ -431,8 +463,8 @@ let reviews = [
   {
     id: "2",
     bookId: "5",
-    userId: "3",
-    userName: "John Doe",
+    userId: "2",
+    userName: "Demo User",
     rating: 5,
     title: "Pure Magic",
     comment: "Absolutely magical! This book sparked my love for reading as a child and still holds up today.",
@@ -442,8 +474,8 @@ let reviews = [
   {
     id: "3",
     bookId: "2",
-    userId: "3",
-    userName: "John Doe",
+    userId: "2",
+    userName: "Demo User",
     rating: 4,
     title: "Eye-opening perspective",
     comment: "A fascinating look at human history. Some sections are dense but overall very enlightening.",
@@ -454,14 +486,25 @@ let reviews = [
 
 // ==================== USER INTERACTIONS (Wishlist, Reading Progress) ====================
 let userInteractions = [
-  { id: "1", userId: "3", bookId: "3", type: "wishlist", createdAt: "2024-02-01T00:00:00Z" },
-  { id: "2", userId: "3", bookId: "9", type: "wishlist", createdAt: "2024-02-05T00:00:00Z" },
-  { id: "3", userId: "3", bookId: "1", type: "reading", progress: 100, createdAt: "2024-02-10T00:00:00Z" },
+  { id: "1", userId: "2", bookId: "3", type: "wishlist", createdAt: "2024-02-01T00:00:00Z" },
+  { id: "2", userId: "2", bookId: "9", type: "wishlist", createdAt: "2024-02-05T00:00:00Z" },
+  { id: "3", userId: "2", bookId: "1", type: "reading", progress: 100, createdAt: "2024-02-10T00:00:00Z" },
 ]
 
-// ==================================================
-// DATABASE HELPER FUNCTIONS
-// ==================================================
+// ==================== DIGITAL BOOKS (PDF STORAGE) ====================
+const digitalBooks = [
+  // Structure: { id, bookId, pdfUrl, fileSize, uploadDate }
+]
+
+// ==================== BOOK METADATA ====================
+const bookMetadata = [
+  // Structure: { bookId, listingQuestions: { condition, format, binding, etc } }
+]
+
+// ==================== SELLER STATS ====================
+const sellerStats = [
+  // Structure: { sellerId, monthlyStats: [...], yearlyStats: [...] }
+]
 
 export const db = {
   // ---------- USERS ----------
@@ -474,6 +517,8 @@ export const db = {
       id: Date.now().toString(),
       role: "user",
       createdAt: new Date().toISOString(),
+      isActive: true,
+      isBanned: false,
     }
     users.push(newUser)
     return newUser
@@ -484,6 +529,22 @@ export const db = {
   },
   deleteUser: (id) => {
     users = users.filter((u) => u.id !== id)
+  },
+  banUser: (userId) => {
+    const user = users.find((u) => u.id === userId)
+    if (user) {
+      user.isBanned = true
+      user.isActive = false
+    }
+    return user
+  },
+  unbanUser: (userId) => {
+    const user = users.find((u) => u.id === userId)
+    if (user) {
+      user.isBanned = false
+      user.isActive = true
+    }
+    return user
   },
 
   // ---------- AUTHORS ----------
@@ -522,6 +583,9 @@ export const db = {
       reviewCount: 0,
       rating: 0,
       createdAt: new Date().toISOString(),
+      bookType: "physical",
+      pdf: null,
+      listingQuestions: null,
     }
     books.push(newBook)
     // Add to inventory
@@ -634,6 +698,74 @@ export const db = {
     userInteractions = userInteractions.filter(
       (i) => !(i.userId === userId && i.bookId === bookId && i.type === "wishlist"),
     )
+  },
+
+  // ---------- SELLER APPLICATIONS ----------
+  getSellerApplications: () => sellerApplications,
+  getApplicationById: (id) => sellerApplications.find((a) => a.id === id),
+  getApplicationsByStatus: (status) => sellerApplications.filter((a) => a.status === status),
+  createSellerApplication: (userData) => {
+    const application = {
+      id: Date.now().toString(),
+      userId: userData.id,
+      email: userData.email,
+      name: userData.name,
+      businessName: userData.businessName,
+      businessEmail: userData.businessEmail,
+      businessPhone: userData.businessPhone,
+      businessAddress: userData.businessAddress,
+      taxId: userData.taxId,
+      bankAccount: userData.bankAccount,
+      status: "pending",
+      rejectionReason: null,
+      createdAt: new Date().toISOString(),
+      approvedAt: null,
+    }
+    sellerApplications.push(application)
+    return application
+  },
+  approveSellerApplication: (applicationId) => {
+    const app = sellerApplications.find((a) => a.id === applicationId)
+    if (app) {
+      app.status = "approved"
+      app.approvedAt = new Date().toISOString()
+      // Convert user to seller
+      const user = users.find((u) => u.id === app.userId)
+      if (user) {
+        user.role = "seller"
+        user.businessName = app.businessName
+      }
+    }
+    return app
+  },
+  rejectSellerApplication: (applicationId, reason) => {
+    const app = sellerApplications.find((a) => a.id === applicationId)
+    if (app) {
+      app.status = "rejected"
+      app.rejectionReason = reason
+    }
+    return app
+  },
+
+  // ---------- DIGITAL BOOKS ----------
+  getDigitalBook: (bookId) => digitalBooks.find((db) => db.bookId === bookId),
+  uploadDigitalBook: (bookId, pdfUrl, fileSize) => {
+    const existing = digitalBooks.find((db) => db.bookId === bookId)
+    if (existing) {
+      existing.pdfUrl = pdfUrl
+      existing.fileSize = fileSize
+      existing.uploadDate = new Date().toISOString()
+      return existing
+    }
+    const newDigitalBook = {
+      id: Date.now().toString(),
+      bookId,
+      pdfUrl,
+      fileSize,
+      uploadDate: new Date().toISOString(),
+    }
+    digitalBooks.push(newDigitalBook)
+    return newDigitalBook
   },
 
   // ---------- STATS ----------

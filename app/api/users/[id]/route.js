@@ -22,6 +22,11 @@ export async function PUT(request, { params }) {
     const { id } = await params
     const data = await request.json()
 
+    if (data.email && !data.email.includes("@")) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 })
+    }
+
+    // Handle ban/unban operations
     if (data.isBanned !== undefined) {
       if (data.isBanned) {
         db.banUser(id)
@@ -30,13 +35,13 @@ export async function PUT(request, { params }) {
       }
     }
 
-    const user = db.updateUser(id, data)
+    const result = db.updateUser(id, data)
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 409 })
     }
 
-    const { password, ...userWithoutPassword } = user
+    const { password, ...userWithoutPassword } = result.user
     return NextResponse.json({ success: true, user: userWithoutPassword })
   } catch (error) {
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 })

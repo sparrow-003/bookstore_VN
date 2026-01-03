@@ -34,3 +34,44 @@ export async function GET(request) {
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })
   }
 }
+
+export async function POST(request) {
+  try {
+    const data = await request.json()
+    const { email, name, password, role, phone, address, businessName } = data
+
+    // Validation
+    if (!email || !name || !password) {
+      return NextResponse.json({ error: "Email, name, and password are required" }, { status: 400 })
+    }
+
+    if (!email.includes("@")) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 })
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
+    }
+
+    // Create user with email uniqueness check
+    const result = db.createUser({
+      email,
+      name,
+      password,
+      role: role || "user",
+      phone: phone || "",
+      address: address || "",
+      businessName: businessName || "",
+      avatar: null,
+    })
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 409 })
+    }
+
+    const { password: _, ...userWithoutPassword } = result.user
+    return NextResponse.json({ success: true, user: userWithoutPassword }, { status: 201 })
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
+  }
+}

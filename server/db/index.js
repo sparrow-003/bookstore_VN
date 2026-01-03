@@ -512,20 +512,33 @@ export const db = {
   getUserById: (id) => users.find((u) => u.id === id),
   getUserByEmail: (email) => users.find((u) => u.email === email),
   createUser: (userData) => {
+    const existingUser = users.find((u) => u.email.toLowerCase() === userData.email.toLowerCase())
+    if (existingUser) {
+      return { success: false, error: "Email already exists" }
+    }
+
     const newUser = {
       ...userData,
       id: Date.now().toString(),
-      role: "user",
+      role: userData.role || "user",
       createdAt: new Date().toISOString(),
       isActive: true,
       isBanned: false,
     }
     users.push(newUser)
-    return newUser
+    return { success: true, user: newUser }
   },
   updateUser: (id, data) => {
+    if (data.email) {
+      const existingUser = users.find((u) => u.id !== id && u.email.toLowerCase() === data.email.toLowerCase())
+      if (existingUser) {
+        return { success: false, error: "Email already exists" }
+      }
+    }
+
     users = users.map((u) => (u.id === id ? { ...u, ...data } : u))
-    return users.find((u) => u.id === id)
+    const updatedUser = users.find((u) => u.id === id)
+    return { success: true, user: updatedUser }
   },
   deleteUser: (id) => {
     users = users.filter((u) => u.id !== id)

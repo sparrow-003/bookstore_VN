@@ -28,6 +28,8 @@ export default function SellerDashboard() {
   const [stats, setStats] = useState(null)
   const [timeFrame, setTimeFrame] = useState("month")
   const [chartData, setChartData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isSeller)) {
@@ -36,19 +38,35 @@ export default function SellerDashboard() {
   }, [authLoading, isAuthenticated, isSeller, router])
 
   useEffect(() => {
-    if (isSeller && user?.id) {
+    if (isSeller && user?.id && !authLoading) {
       fetchStats()
     }
-  }, [isSeller, user?.id, timeFrame])
+  }, [isSeller, user?.id, authLoading, timeFrame])
 
   const fetchStats = async () => {
     try {
+      setIsLoading(true)
+      setError("")
       const res = await fetch(`/api/seller/stats?userId=${user.id}&timeFrame=${timeFrame}`)
+      if (!res.ok) throw new Error("Failed to fetch stats")
       const data = await res.json()
-      setStats(data.stats)
+      setStats(data.stats || {})
       setChartData(data.chartData || [])
     } catch (error) {
-      console.error("Failed to fetch stats:", error)
+      console.error("[v0] Failed to fetch stats:", error)
+      setError("Failed to load dashboard data")
+      setStats({
+        totalRevenue: 0,
+        totalOrders: 0,
+        totalBooks: 0,
+        avgRating: 0,
+        physicalBooks: 0,
+        digitalBooks: 0,
+        revenueTrend: 0,
+      })
+      setChartData([])
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -66,9 +84,13 @@ export default function SellerDashboard() {
       <div className="flex-1 flex flex-col">
         <DashboardHeader title="Seller Dashboard" />
         <main className="flex-1 p-6">
+          {error && (
+            <div className="p-3 rounded mb-4 bg-yellow-50 text-yellow-700 border border-yellow-200">{error}</div>
+          )}
+
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Welcome back, {user?.name}</h2>
+              <h2 className="text-2xl font-bold">Welcome back, {user?.name || "Seller"}</h2>
               <p className="text-muted-foreground">Your bookstore performance and analytics</p>
             </div>
             <div className="flex items-center gap-2">
@@ -100,7 +122,7 @@ export default function SellerDashboard() {
           </div>
 
           {/* Revenue Chart */}
-          {chartData.length > 0 && (
+          {!isLoading && chartData && chartData.length > 0 && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Revenue Trend</CardTitle>
@@ -121,7 +143,7 @@ export default function SellerDashboard() {
           )}
 
           {/* Sales by Category */}
-          {chartData.length > 0 && (
+          {!isLoading && chartData && chartData.length > 0 && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Sales by Category</CardTitle>

@@ -16,11 +16,12 @@ import { Star, Trash2, Plus, X } from "lucide-react"
 export default function AdminSellersPage() {
   const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { users: sellers, isLoading, mutate } = useUsers("seller")
+  const { users: sellers = [], isLoading, mutate } = useUsers("seller")
   const [showForm, setShowForm] = useState(false)
   const [editingSeller, setEditingSeller] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState("")
+  const [messageType, setMessageType] = useState("success")
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isAdmin)) {
@@ -49,10 +50,12 @@ export default function AdminSellersPage() {
 
       if (!res.ok) {
         setMessage(result.error || "Failed to save seller")
+        setMessageType("error")
         return
       }
 
       setMessage(editingSeller ? "Seller updated successfully" : "Seller created successfully")
+      setMessageType("success")
       setShowForm(false)
       setEditingSeller(null)
       mutate()
@@ -60,7 +63,9 @@ export default function AdminSellersPage() {
       // Clear message after 3 seconds
       setTimeout(() => setMessage(""), 3000)
     } catch (error) {
+      console.error("[v0] Error saving seller:", error)
       setMessage("An error occurred while saving seller")
+      setMessageType("error")
     } finally {
       setIsSubmitting(false)
     }
@@ -68,10 +73,20 @@ export default function AdminSellersPage() {
 
   const handleDeleteSeller = async (sellerId) => {
     try {
-      await fetch(`/api/users/${sellerId}`, { method: "DELETE" })
-      mutate()
+      const res = await fetch(`/api/users/${sellerId}`, { method: "DELETE" })
+      if (res.ok) {
+        setMessage("Seller deleted successfully")
+        setMessageType("success")
+        mutate()
+        setTimeout(() => setMessage(""), 3000)
+      } else {
+        setMessage("Failed to delete seller")
+        setMessageType("error")
+      }
     } catch (error) {
-      console.error("Failed to delete seller:", error)
+      console.error("[v0] Failed to delete seller:", error)
+      setMessage("An error occurred while deleting seller")
+      setMessageType("error")
     }
   }
 
@@ -107,7 +122,9 @@ export default function AdminSellersPage() {
 
               {message && (
                 <div
-                  className={`p-3 rounded mb-4 ${message.includes("error") ? "bg-destructive/10 text-destructive" : "bg-green-50 text-green-700"}`}
+                  className={`p-3 rounded mb-4 ${
+                    messageType === "error" ? "bg-destructive/10 text-destructive" : "bg-green-50 text-green-700"
+                  }`}
                 >
                   {message}
                 </div>
@@ -146,11 +163,7 @@ export default function AdminSellersPage() {
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
                     </CardContent>
                   </Card>
-                ) : sellers.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">No sellers found</CardContent>
-                  </Card>
-                ) : (
+                ) : sellers && sellers.length > 0 ? (
                   sellers.map((seller) => (
                     <Card key={seller.id}>
                       <CardContent className="p-6">
@@ -181,7 +194,7 @@ export default function AdminSellersPage() {
 
                           {/* Joined Date */}
                           <div className="text-sm text-muted-foreground">
-                            {new Date(seller.createdAt).toLocaleDateString()}
+                            {seller.createdAt ? new Date(seller.createdAt).toLocaleDateString() : "N/A"}
                           </div>
 
                           {/* Actions */}
@@ -213,6 +226,10 @@ export default function AdminSellersPage() {
                       </CardContent>
                     </Card>
                   ))
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">No sellers found</CardContent>
+                  </Card>
                 )}
               </div>
             </>

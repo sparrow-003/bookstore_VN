@@ -15,7 +15,7 @@ import { UserForm } from "@/components/admin/user-form"
 import { Search, Ban, CheckCircle, Trash2, Plus, X } from "lucide-react"
 
 export default function AdminUsersPage() {
-  const { isAdmin, isLoading, user: currentUser } = useAuth()
+  const { isAdmin, isLoading: authLoading, user: currentUser } = useAuth()
   const router = useRouter()
   const [users, setUsers] = useState([])
   const [search, setSearch] = useState("")
@@ -23,27 +23,35 @@ export default function AdminUsersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState("")
+  const [messageType, setMessageType] = useState("success")
 
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      router.push("/login?redirect=/admin")
+    if (!authLoading && !isAdmin) {
+      router.push("/login?redirect=/admin/users")
     }
-  }, [isLoading, isAdmin, router])
+  }, [authLoading, isAdmin, router])
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && !authLoading) {
       fetchUsers()
     }
-  }, [isAdmin])
+  }, [isAdmin, authLoading])
 
   const fetchUsers = async () => {
     try {
+      setIsLoading(true)
       const res = await fetch("/api/users")
+      if (!res.ok) throw new Error("Failed to fetch users")
       const data = await res.json()
       setUsers(data.users || [])
     } catch (error) {
-      console.error("Failed to fetch users:", error)
+      console.error("[v0] Failed to fetch users:", error)
+      setMessage("Failed to load users")
+      setMessageType("error")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -65,18 +73,21 @@ export default function AdminUsersPage() {
 
       if (!res.ok) {
         setMessage(result.error || "Failed to save user")
+        setMessageType("error")
         return
       }
 
       setMessage(editingUser ? "User updated successfully" : "User created successfully")
+      setMessageType("success")
       setShowForm(false)
       setEditingUser(null)
       fetchUsers()
 
-      // Clear message after 3 seconds
       setTimeout(() => setMessage(""), 3000)
     } catch (error) {
+      console.error("[v0] Error saving user:", error)
       setMessage("An error occurred while saving user")
+      setMessageType("error")
     } finally {
       setIsSubmitting(false)
     }
@@ -84,49 +95,77 @@ export default function AdminUsersPage() {
 
   const handleBanUser = async (userId) => {
     try {
-      await fetch(`/api/users/${userId}`, {
+      const res = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isBanned: true }),
       })
-      fetchUsers()
+      if (res.ok) {
+        setMessage("User banned successfully")
+        setMessageType("success")
+        fetchUsers()
+        setTimeout(() => setMessage(""), 3000)
+      }
     } catch (error) {
-      console.error("Failed to ban user:", error)
+      console.error("[v0] Failed to ban user:", error)
+      setMessage("Failed to ban user")
+      setMessageType("error")
     }
   }
 
   const handleUnbanUser = async (userId) => {
     try {
-      await fetch(`/api/users/${userId}`, {
+      const res = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isBanned: false }),
       })
-      fetchUsers()
+      if (res.ok) {
+        setMessage("User unbanned successfully")
+        setMessageType("success")
+        fetchUsers()
+        setTimeout(() => setMessage(""), 3000)
+      }
     } catch (error) {
-      console.error("Failed to unban user:", error)
+      console.error("[v0] Failed to unban user:", error)
+      setMessage("Failed to unban user")
+      setMessageType("error")
     }
   }
 
   const handleDelete = async (userId) => {
     try {
-      await fetch(`/api/users/${userId}`, { method: "DELETE" })
-      fetchUsers()
+      const res = await fetch(`/api/users/${userId}`, { method: "DELETE" })
+      if (res.ok) {
+        setMessage("User deleted successfully")
+        setMessageType("success")
+        fetchUsers()
+        setTimeout(() => setMessage(""), 3000)
+      }
     } catch (error) {
-      console.error("Failed to delete user:", error)
+      console.error("[v0] Failed to delete user:", error)
+      setMessage("Failed to delete user")
+      setMessageType("error")
     }
   }
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      await fetch(`/api/users/${userId}`, {
+      const res = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
       })
-      fetchUsers()
+      if (res.ok) {
+        setMessage("Role updated successfully")
+        setMessageType("success")
+        fetchUsers()
+        setTimeout(() => setMessage(""), 3000)
+      }
     } catch (error) {
-      console.error("Failed to update role:", error)
+      console.error("[v0] Failed to update role:", error)
+      setMessage("Failed to update role")
+      setMessageType("error")
     }
   }
 
@@ -135,7 +174,7 @@ export default function AdminUsersPage() {
     setShowForm(true)
   }
 
-  if (isLoading || !isAdmin) {
+  if (authLoading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -144,11 +183,12 @@ export default function AdminUsersPage() {
   }
 
   // Filter users
-  let filteredUsers = users
+  let filteredUsers = users || []
   if (search) {
     filteredUsers = filteredUsers.filter(
       (u) =>
-        u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()),
+        (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (u.email || "").toLowerCase().includes(search.toLowerCase()),
     )
   }
   if (filterRole !== "all") {
@@ -179,7 +219,9 @@ export default function AdminUsersPage() {
 
               {message && (
                 <div
-                  className={`p-3 rounded mb-4 ${message.includes("error") ? "bg-destructive/10 text-destructive" : "bg-green-50 text-green-700"}`}
+                  className={`p-3 rounded mb-4 ${
+                    messageType === "error" ? "bg-destructive/10 text-destructive" : "bg-green-50 text-green-700"
+                  }`}
                 >
                   {message}
                 </div>
@@ -233,19 +275,21 @@ export default function AdminUsersPage() {
 
               {/* Users Grid */}
               <div className="space-y-4">
-                {filteredUsers.length === 0 ? (
+                {isLoading ? (
                   <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">No users found</CardContent>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+                    </CardContent>
                   </Card>
-                ) : (
+                ) : filteredUsers && filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
                     <Card key={user.id}>
                       <CardContent className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                           {/* User Info */}
                           <div>
-                            <p className="font-semibold">{user.name}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            <p className="font-semibold">{user.name || "Unknown"}</p>
+                            <p className="text-sm text-muted-foreground">{user.email || "No email"}</p>
                           </div>
 
                           {/* Role Badge */}
@@ -255,7 +299,7 @@ export default function AdminUsersPage() {
                                 user.role === "admin" ? "destructive" : user.role === "seller" ? "default" : "secondary"
                               }
                             >
-                              {user.role}
+                              {user.role || "user"}
                             </Badge>
                           </div>
 
@@ -272,7 +316,7 @@ export default function AdminUsersPage() {
 
                           {/* Joined Date */}
                           <div className="text-sm text-muted-foreground">
-                            {new Date(user.createdAt).toLocaleDateString()}
+                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                           </div>
 
                           {/* Actions */}
@@ -291,7 +335,10 @@ export default function AdminUsersPage() {
 
                             {/* Role Selector */}
                             {user.id !== currentUser?.id && (
-                              <Select value={user.role} onValueChange={(value) => handleRoleChange(user.id, value)}>
+                              <Select
+                                value={user.role || "user"}
+                                onValueChange={(value) => handleRoleChange(user.id, value)}
+                              >
                                 <SelectTrigger className="w-24 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -352,6 +399,10 @@ export default function AdminUsersPage() {
                       </CardContent>
                     </Card>
                   ))
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">No users found</CardContent>
+                  </Card>
                 )}
               </div>
             </>

@@ -16,65 +16,87 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Edit, Trash2 } from "lucide-react"
 
 export default function AdminBooksPage() {
-  const { isAdmin, isLoading } = useAuth()
+  const { isAdmin, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [books, setBooks] = useState([])
   const [search, setSearch] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingBook, setEditingBook] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [message, setMessage] = useState("")
 
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      router.push("/login?redirect=/admin")
+    if (!authLoading && !isAdmin) {
+      router.push("/login?redirect=/admin/books")
     }
-  }, [isLoading, isAdmin, router])
+  }, [authLoading, isAdmin, router])
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin && !authLoading) {
       fetchBooks()
     }
-  }, [isAdmin])
+  }, [isAdmin, authLoading])
 
   const fetchBooks = async () => {
-    const res = await fetch("/api/books")
-    const data = await res.json()
-    setBooks(data.books)
+    try {
+      setIsLoading(true)
+      const res = await fetch("/api/books")
+      if (!res.ok) throw new Error("Failed to fetch books")
+      const data = await res.json()
+      setBooks(data.books || [])
+    } catch (error) {
+      console.error("[v0] Failed to fetch books:", error)
+      setMessage("Failed to load books")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSave = async (bookData) => {
     setIsSaving(true)
     try {
-      if (editingBook) {
-        await fetch(`/api/books/${editingBook.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bookData),
-        })
-      } else {
-        await fetch("/api/books", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bookData),
-        })
-      }
+      const url = editingBook ? `/api/books/${editingBook.id}` : "/api/books"
+      const method = editingBook ? "PUT" : "POST"
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookData),
+      })
+
+      if (!res.ok) throw new Error("Failed to save book")
+
       fetchBooks()
       setIsDialogOpen(false)
       setEditingBook(null)
+      setMessage(editingBook ? "Book updated successfully" : "Book created successfully")
+      setTimeout(() => setMessage(""), 3000)
+    } catch (error) {
+      console.error("[v0] Error saving book:", error)
+      setMessage("Failed to save book")
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleDelete = async (id) => {
-    await fetch(`/api/books/${id}`, { method: "DELETE" })
-    fetchBooks()
+    try {
+      const res = await fetch(`/api/books/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete book")
+      fetchBooks()
+      setMessage("Book deleted successfully")
+      setTimeout(() => setMessage(""), 3000)
+    } catch (error) {
+      console.error("[v0] Failed to delete book:", error)
+      setMessage("Failed to delete book")
+    }
   }
 
-  const filteredBooks = books.filter(
+  const filteredBooks = (books || []).filter(
     (book) =>
-      book.title.toLowerCase().includes(search.toLowerCase()) ||
-      book.author.toLowerCase().includes(search.toLowerCase()),
+      (book.title || "").toLowerCase().includes(search.toLowerCase()) ||
+      (book.author || "").toLowerCase().includes(search.toLowerCase()),
   )
 
   const columns = [
@@ -87,15 +109,19 @@ export default function AdminBooksPage() {
             <Image src={book.image || "/placeholder.svg"} alt={book.title} fill className="object-cover" />
           </div>
           <div>
-            <p className="font-medium text-sm">{book.title}</p>
-            <p className="text-xs text-muted-foreground">{book.author}</p>
+            <p className="font-medium text-sm">{book.title || "Unknown"}</p>
+            <p className="text-xs text-muted-foreground">{book.author || "Unknown"}</p>
           </div>
         </div>
       ),
     },
-    { key: "category", label: "Category", render: (book) => <span className="capitalize">{book.category}</span> },
-    { key: "price", label: "Price", render: (book) => `$${book.price.toFixed(2)}` },
-    { key: "quantity", label: "Stock", render: (book) => book.quantity },
+    {
+      key: "category",
+      label: "Category",
+      render: (book) => <span className="capitalize">{book.category || "N/A"}</span>,
+    },
+    { key: "price", label: "Price", render: (book) => `$${(book.price || 0).toFixed(2)}` },
+    { key: "quantity", label: "Stock", render: (book) => book.quantity || 0 },
     {
       key: "status",
       label: "Status",
@@ -133,10 +159,10 @@ export default function AdminBooksPage() {
     },
   ]
 
-  if (isLoading || !isAdmin) {
+  if (authLoading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     )
   }
@@ -157,10 +183,25 @@ export default function AdminBooksPage() {
           </Button>
         </DashboardHeader>
         <main className="flex-1 p-6">
+          {message && (
+            <div
+              className={`p-3 rounded mb-4 ${message.includes("Failed") ? "bg-destructive/10 text-destructive" : "bg-green-50 text-green-700"}`}
+            >
+              {message}
+            </div>
+          )}
+
           <div className="mb-6">
             <SearchInput value={search} onChange={setSearch} placeholder="Search books..." />
           </div>
-          <DataTable columns={columns} data={filteredBooks} emptyMessage="No books found" />
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-48">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : (
+            <DataTable columns={columns} data={filteredBooks} emptyMessage="No books found" />
+          )}
         </main>
       </div>
 

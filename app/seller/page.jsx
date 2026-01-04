@@ -25,11 +25,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function SellerDashboard() {
   const { user, isAuthenticated, isSeller, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const [stats, setStats] = useState(null)
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalBooks: 0,
+    avgRating: 0,
+    physicalBooks: 0,
+    digitalBooks: 0,
+    revenueTrend: "0%",
+  })
   const [timeFrame, setTimeFrame] = useState("month")
   const [chartData, setChartData] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [isLoadingData, setIsLoadingData] = useState(false)
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || !isSeller)) {
@@ -38,39 +45,38 @@ export default function SellerDashboard() {
   }, [authLoading, isAuthenticated, isSeller, router])
 
   useEffect(() => {
-    if (isSeller && user?.id && !authLoading) {
-      fetchStats()
+    const loadStats = async () => {
+      if (!isSeller || !user?.id || authLoading) return
+
+      try {
+        setIsLoadingData(true)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+        const response = await fetch(`/api/seller/stats?userId=${user.id}&timeFrame=${timeFrame}`, {
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data.stats || stats)
+          setChartData(data.chartData || [])
+        } else {
+          console.error("[v0] Failed to fetch seller stats:", response.status)
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching seller stats:", error.message)
+      } finally {
+        setIsLoadingData(false)
+      }
     }
+
+    loadStats()
   }, [isSeller, user?.id, authLoading, timeFrame])
 
-  const fetchStats = async () => {
-    try {
-      setIsLoading(true)
-      setError("")
-      const res = await fetch(`/api/seller/stats?userId=${user.id}&timeFrame=${timeFrame}`)
-      if (!res.ok) throw new Error("Failed to fetch stats")
-      const data = await res.json()
-      setStats(data.stats || {})
-      setChartData(data.chartData || [])
-    } catch (error) {
-      console.error("[v0] Failed to fetch stats:", error)
-      setError("Failed to load dashboard data")
-      setStats({
-        totalRevenue: 0,
-        totalOrders: 0,
-        totalBooks: 0,
-        avgRating: 0,
-        physicalBooks: 0,
-        digitalBooks: 0,
-        revenueTrend: 0,
-      })
-      setChartData([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (authLoading || !isSeller) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -78,17 +84,17 @@ export default function SellerDashboard() {
     )
   }
 
+  if (!isSeller) {
+    return null
+  }
+
   return (
     <div className="flex min-h-screen bg-muted/30">
       <DashboardSidebar type="seller" />
       <div className="flex-1 flex flex-col">
         <DashboardHeader title="Seller Dashboard" />
-        <main className="flex-1 p-6">
-          {error && (
-            <div className="p-3 rounded mb-4 bg-yellow-50 text-yellow-700 border border-yellow-200">{error}</div>
-          )}
-
-          <div className="mb-6 flex items-center justify-between">
+        <main className="flex-1 p-6 overflow-y-auto">
+          <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-2xl font-bold">Welcome back, {user?.name || "Seller"}</h2>
               <p className="text-muted-foreground">Your bookstore performance and analytics</p>
@@ -110,19 +116,14 @@ export default function SellerDashboard() {
 
           {/* Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            <StatCard
-              title="Total Revenue"
-              value={`$${(stats?.totalRevenue || 0).toFixed(2)}`}
-              icon={TrendingUp}
-              trend={stats?.revenueTrend}
-            />
-            <StatCard title="Total Orders" value={stats?.totalOrders || 0} icon={TrendingUp} />
-            <StatCard title="Total Books Listed" value={stats?.totalBooks || 0} icon={TrendingUp} />
-            <StatCard title="Average Rating" value={`${(stats?.avgRating || 0).toFixed(1)}/5`} icon={TrendingUp} />
+            <StatCard title="Total Revenue" value={`$${(stats.totalRevenue || 0).toFixed(2)}`} icon={TrendingUp} />
+            <StatCard title="Total Orders" value={stats.totalOrders || 0} icon={TrendingUp} />
+            <StatCard title="Total Books Listed" value={stats.totalBooks || 0} icon={TrendingUp} />
+            <StatCard title="Average Rating" value={`${(stats.avgRating || 0).toFixed(1)}/5`} icon={TrendingUp} />
           </div>
 
           {/* Revenue Chart */}
-          {!isLoading && chartData && chartData.length > 0 && (
+          {chartData && chartData.length > 0 && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Revenue Trend</CardTitle>
@@ -143,7 +144,7 @@ export default function SellerDashboard() {
           )}
 
           {/* Sales by Category */}
-          {!isLoading && chartData && chartData.length > 0 && (
+          {chartData && chartData.length > 0 && (
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Sales by Category</CardTitle>
@@ -175,21 +176,21 @@ export default function SellerDashboard() {
                     <p className="font-medium">Total Books</p>
                     <p className="text-sm text-muted-foreground">All listed books</p>
                   </div>
-                  <p className="text-2xl font-bold">{stats?.totalBooks || 0}</p>
+                  <p className="text-2xl font-bold">{stats.totalBooks || 0}</p>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="font-medium">Physical Books</p>
                     <p className="text-sm text-muted-foreground">Hardcover & Paperback</p>
                   </div>
-                  <p className="text-2xl font-bold">{stats?.physicalBooks || 0}</p>
+                  <p className="text-2xl font-bold">{stats.physicalBooks || 0}</p>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="font-medium">Digital Books</p>
                     <p className="text-sm text-muted-foreground">PDF Downloads</p>
                   </div>
-                  <p className="text-2xl font-bold">{stats?.digitalBooks || 0}</p>
+                  <p className="text-2xl font-bold">{stats.digitalBooks || 0}</p>
                 </div>
               </div>
             </CardContent>

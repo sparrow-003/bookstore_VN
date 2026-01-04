@@ -199,7 +199,7 @@ View charts showing:
 ## Database Schema
 
 ### Users Collection
-```javascript
+\`\`\`javascript
 {
   id: string,
   email: string,
@@ -214,10 +214,10 @@ View charts showing:
   isActive: boolean,
   createdAt: date
 }
-```
+\`\`\`
 
 ### Books Collection
-```javascript
+\`\`\`javascript
 {
   id: string,
   title: string,
@@ -245,10 +245,10 @@ View charts showing:
   pdf?: string (PDF URL for digital books),
   createdAt: date
 }
-```
+\`\`\`
 
 ### Orders Collection
-```javascript
+\`\`\`javascript
 {
   id: string,
   userId: string,
@@ -265,7 +265,7 @@ View charts showing:
   createdAt: date,
   updatedAt: date
 }
-```
+\`\`\`
 
 ## Security Considerations
 
@@ -292,21 +292,21 @@ View charts showing:
 ## Deployment Steps
 
 ### 1. Environment Setup
-```bash
+\`\`\`bash
 npm install
 export ADMIN_EMAIL=your-email@example.com
 export DATABASE_URL=your-database-url
-```
+\`\`\`
 
 ### 2. Build
-```bash
+\`\`\`bash
 npm run build
-```
+\`\`\`
 
 ### 3. Start Server
-```bash
+\`\`\`bash
 npm start
-```
+\`\`\`
 
 ### 4. Verify
 - Check `/admin` login

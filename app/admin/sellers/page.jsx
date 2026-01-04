@@ -29,6 +29,12 @@ export default function AdminSellersPage() {
     }
   }, [authLoading, isAuthenticated, isAdmin, router])
 
+  useEffect(() => {
+    if (isLoading && sellers && sellers.length === 0) {
+      console.error("[v0] Failed to load sellers - check API connection")
+    }
+  }, [isLoading, sellers])
+
   const handleSaveSeller = async (sellerData) => {
     setIsSubmitting(true)
     setMessage("")

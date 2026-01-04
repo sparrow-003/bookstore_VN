@@ -8,20 +8,20 @@
 ## Installation
 
 ### 1. Clone/Download Project
-```bash
+\`\`\`bash
 git clone [repository-url]
 cd bookstore
-```
+\`\`\`
 
 ### 2. Install Dependencies
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 ### 3. Start Development Server
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 The application will be available at `http://localhost:3000`
 
@@ -113,7 +113,7 @@ The application will be available at `http://localhost:3000`
 
 ## File Structure
 
-```
+\`\`\`
 bookstore/
 ├── app/
 │   ├── page.jsx                 # Home page
@@ -168,7 +168,7 @@ bookstore/
 │   └── middleware/              # Custom middleware
 └── public/                      # Static assets
     └── images/                  # Book covers
-```
+\`\`\`
 
 ## Database Structure
 
@@ -184,7 +184,7 @@ All data is stored in JavaScript objects (in-memory database for demo).
 
 ### Change Admin Credentials
 Edit `server/db/index.js` and update the default users array:
-```javascript
+\`\`\`javascript
 let users = [
   {
     id: "1",
@@ -196,16 +196,16 @@ let users = [
   },
   // ... other users
 ]
-```
+\`\`\`
 
 ### Add Categories
 Edit `server/db/index.js` and modify genres array:
-```javascript
+\`\`\`javascript
 const genres = [
   { id: "new-category", name: "New Category", description: "...", icon: "..." },
   // ... existing categories
 ]
-```
+\`\`\`
 
 ### Customize Styling
 - Edit `app/globals.css` for global styles
@@ -215,18 +215,18 @@ const genres = [
 ## Troubleshooting
 
 ### Port Already in Use
-```bash
+\`\`\`bash
 # Use different port
 npm run dev -- -p 3001
-```
+\`\`\`
 
 ### Dependencies Installation Error
-```bash
+\`\`\`bash
 # Clear npm cache and reinstall
 npm cache clean --force
 rm -rf node_modules package-lock.json
 npm install
-```
+\`\`\`
 
 ### Database Reset
 The in-memory database resets when you stop the server. To preserve data:

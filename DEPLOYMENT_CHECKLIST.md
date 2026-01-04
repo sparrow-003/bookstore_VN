@@ -72,31 +72,31 @@
 ## Deployment Steps
 
 ### 1. Prepare Environment
-```bash
+\`\`\`bash
 # Create .env.production file with:
 DATABASE_URL=your_production_db_url
 ADMIN_EMAIL=admin@yourdomain.com
 JWT_SECRET=your_secure_jwt_secret
 STRIPE_SECRET_KEY=optional_stripe_key
 FILE_STORAGE_URL=cloud_storage_url
-```
+\`\`\`
 
 ### 2. Database Migration
-```bash
+\`\`\`bash
 # Backup current database
 # Run migrations
 npm run migrate:prod
 # Verify data integrity
-```
+\`\`\`
 
 ### 3. Build Optimization
-```bash
+\`\`\`bash
 npm run build
 npm run analyze  # Check bundle size
-```
+\`\`\`
 
 ### 4. Deploy Application
-```bash
+\`\`\`bash
 # Option A: Vercel
 vercel deploy --prod
 
@@ -107,7 +107,7 @@ docker run -p 3000:3000 bookstore
 # Option C: Node.js Server
 npm install --production
 npm start
-```
+\`\`\`
 
 ### 5. Post-Deployment Verification
 - [ ] Admin login working
@@ -153,12 +153,12 @@ npm start
 In case of deployment issues:
 
 1. **Immediate Rollback:**
-   ```bash
+   \`\`\`bash
    # Revert to previous version
    git revert [commit_hash]
    npm run build
    npm start
-   ```
+   \`\`\`
 
 2. **Database Rollback:**
    - Use backup from before deployment

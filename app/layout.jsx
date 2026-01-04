@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { CartProvider } from "@/context/cart-context"
 import { AuthProvider } from "@/context/auth-context"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 const merriweather = Merriweather({
   subsets: ["latin"],
@@ -16,16 +17,18 @@ const inter = Inter({
 export const metadata = {
   title: "BookStore - Your One-Stop Book Destination",
   description: "Discover, browse, and buy books from our vast collection covering every genre, author, and language.",
-    generator: 'v0.app'
+  generator: "v0.app",
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        <AuthProvider>
-          <CartProvider>{children}</CartProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <CartProvider>{children}</CartProvider>
+          </AuthProvider>
+        </ErrorBoundary>
         <Analytics />
       </body>
     </html>

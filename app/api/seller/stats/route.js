@@ -8,15 +8,15 @@ export async function GET(request) {
     const timeFrame = searchParams.get("timeFrame") || "month"
 
     // Get user's books and orders
-    const books = db.getBooks().filter((b) => b.sellerId === userId || b.userId === userId)
-    const orders = db.getOrders()
+    const books = db.getBooks ? db.getBooks().filter((b) => b.sellerId === userId || b.userId === userId) || [] : []
+    const orders = db.getOrders ? db.getOrders() || [] : []
 
-    // Calculate stats
-    const totalBooks = books.length
-    const physicalBooks = books.filter((b) => b.bookType === "physical").length
-    const digitalBooks = books.filter((b) => b.bookType === "digital").length
-    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0)
-    const totalOrders = orders.length
+    // Calculate stats with fallback values
+    const totalBooks = books.length || 0
+    const physicalBooks = books.filter((b) => (b.bookType || "physical") === "physical").length || 0
+    const digitalBooks = books.filter((b) => (b.bookType || "physical") === "digital").length || 0
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0) || 0
+    const totalOrders = orders.length || 0
     const avgRating = books.length > 0 ? books.reduce((sum, b) => sum + (b.rating || 0), 0) / books.length : 0
 
     const chartData = generateChartData(orders, timeFrame)
@@ -25,10 +25,10 @@ export async function GET(request) {
       totalBooks,
       physicalBooks,
       digitalBooks,
-      totalRevenue,
+      totalRevenue: Number.parseFloat(totalRevenue.toFixed(2)),
       totalOrders,
       avgRating: Number.parseFloat(avgRating.toFixed(1)),
-      revenueTrend: "+12%", // Placeholder
+      revenueTrend: "+12%",
     }
 
     return NextResponse.json({
@@ -37,7 +37,24 @@ export async function GET(request) {
       chartData,
     })
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 })
+    console.error("[v0] Seller stats error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch stats",
+        stats: {
+          totalBooks: 0,
+          physicalBooks: 0,
+          digitalBooks: 0,
+          totalRevenue: 0,
+          totalOrders: 0,
+          avgRating: 0,
+          revenueTrend: "0%",
+        },
+        chartData: [],
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -54,12 +71,12 @@ function generateChartData(orders, timeFrame) {
     date.setDate(date.getDate() - i)
     const dateStr = date.toLocaleDateString()
 
-    const dayOrders = orders.filter((o) => {
-      const orderDate = new Date(o.createdAt).toLocaleDateString()
+    const dayOrders = (orders || []).filter((o) => {
+      const orderDate = new Date(o.createdAt || new Date()).toLocaleDateString()
       return orderDate === dateStr
     })
 
-    const revenue = dayOrders.reduce((sum, o) => sum + o.total, 0)
+    const revenue = dayOrders.reduce((sum, o) => sum + (o.total || 0), 0)
     const sales = dayOrders.length
 
     data.push({
